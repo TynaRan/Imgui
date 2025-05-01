@@ -2021,3 +2021,136 @@ function library:AddWindow(title, options)
 
 	return window_data, Window
 end
+
+local Window = library:AddWindow("Function Hub", {
+    main_color = Color3.fromRGB(41, 74, 122),
+    min_size = Vector2.new(500, 600),
+    toggle_key = Enum.KeyCode.RightShift,
+    can_resize = true,
+})
+
+local AutoTab = Window:AddTab("Auto Functions")
+local PlayerTab = Window:AddTab("Player Controls")
+
+local enabled = {Dialogue = false, SellAll = false, PullTarget = false, Attack = false}
+local infiniteExecution = {WalkSpeed = false, JumpPower = false, Gravity = false, Noclip = false}
+local tweenService = game:GetService("TweenService")
+
+local function getClosestDamageNode()
+    local p, nearest, minDist = game.Players.LocalPlayer, nil, math.huge
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v.PrimaryPart and v.Name:match("{%x%x%x%x%x%x%x%x%-%x%x%x%x%-") then
+            local dist = (p.Character.HumanoidRootPart.Position - v:GetPivot().Position).Magnitude
+            if dist < minDist then minDist, nearest = dist, v end
+        end
+    end
+    return nearest
+end
+
+local function loopExecute(key, func, delay)
+    task.spawn(function() while enabled[key] do func() task.wait(delay) end end)
+end
+
+local functions = {
+    Dialogue = function()
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GetDialogue"):InvokeServer("Alex")
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GetDialogue"):InvokeServer("Alex", 1, 1)
+    end,
+    SellAll = function()
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SellAll"):FireServer()
+    end,
+    PullTarget = function()
+        local target = getClosestDamageNode()
+        if target and target.PrimaryPart then
+            local p = game.Players.LocalPlayer.Character.HumanoidRootPart
+            tweenService:Create(target.PrimaryPart, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = p.CFrame * CFrame.new(0, 0, -5)}):Play()
+        end
+    end,
+    Attack = function()
+        local target = getClosestDamageNode()
+        if target then game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("DamageNode"):FireServer(target.Name) end
+    end
+}
+
+for key, _ in pairs(functions) do
+    local Switch = AutoTab:AddSwitch("Auto " .. key, function(state)
+        enabled[key] = state
+        if state then loopExecute(key, functions[key], 0.1) end
+    end)
+    Switch:Set(false)
+end
+
+AutoTab:AddButton("Sell All", function()
+    functions.SellAll()
+end)
+
+local Slider = AutoTab:AddSlider("Execution Delay", function(x)
+    print("Execution delay set to:", x)
+end, {min = 0.1, max = 2, readonly = false})
+
+-- PLAYER TAB IMPLEMENTATION WITH INFINITE EXECUTION
+local player = game.Players.LocalPlayer
+local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+
+local function loopPlayerExecution(key, func)
+    task.spawn(function()
+        while infiniteExecution[key] do
+            func()
+            task.wait(0.1)
+        end
+    end)
+end
+
+if humanoid then
+    -- WalkSpeed
+    local SpeedSlider = PlayerTab:AddSlider("WalkSpeed", function(value)
+        humanoid.WalkSpeed = value
+    end, {
+        min = 10,
+        max = 100,
+        readonly = false,
+    })
+
+    PlayerTab:AddSwitch("Infinite WalkSpeed Adjust", function(state)
+        infiniteExecution.WalkSpeed = state
+        if state then loopPlayerExecution("WalkSpeed", function() humanoid.WalkSpeed = SpeedSlider:GetValue() end) end
+    end)
+
+    -- Jump Power
+    local JumpSlider = PlayerTab:AddSlider("Jump Power", function(value)
+        humanoid.JumpPower = value
+    end, {
+        min = 30,
+        max = 150,
+        readonly = false,
+    })
+
+    PlayerTab:AddSwitch("Infinite Jump Power Adjust", function(state)
+        infiniteExecution.JumpPower = state
+        if state then loopPlayerExecution("JumpPower", function() humanoid.JumpPower = JumpSlider:GetValue() end) end
+    end)
+
+    -- Gravity
+    local GravitySlider = PlayerTab:AddSlider("Gravity", function(value)
+        game.Workspace.Gravity = value
+    end, {
+        min = 50,
+        max = 300,
+        readonly = false,
+    })
+
+    PlayerTab:AddSwitch("Infinite Gravity Adjust", function(state)
+        infiniteExecution.Gravity = state
+        if state then loopPlayerExecution("Gravity", function() game.Workspace.Gravity = GravitySlider:GetValue() end) end
+    end)
+
+    -- Noclip Toggle with Infinite Execution
+    PlayerTab:AddSwitch("Noclip Mode", function(state)
+        infiniteExecution.Noclip = state
+        if state then loopPlayerExecution("Noclip", function()
+            for _, v in pairs(player.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = not state end
+            end
+        end) end
+    end)
+end
