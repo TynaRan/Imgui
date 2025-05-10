@@ -88,15 +88,15 @@ local function loadConfig()
     end
 end
 
-HitboxTab:CreateToggle("Enable Hitbox", hitboxEnabled, function(state)
+HitboxTab:CreateCheckbox("Enable Hitbox", hitboxEnabled, function(state)
     updateHitbox(state)
 end)
 
-ESPTab:CreateToggle("Enable ESP", espEnabled, function(state)
+ESPTab:CreateCheckbox("Enable ESP", espEnabled, function(state)
     updateESP(state)
 end)
 
-ESPTab:CreateToggle("Filled ESP", espFilled, function(state)
+ESPTab:CreateCheckbox("Filled ESP", espFilled, function(state)
     espFilled = state
 end)
 
