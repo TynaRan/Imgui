@@ -1,4 +1,4 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/cat"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/TynaRan/Decoder/refs/heads/main/cat%20(1).txt"))()
 local Window = Library:CreateWindow("Async", Vector2.new(492, 598), Enum.KeyCode.RightControl)
 
 -- Main Aiming Tab
